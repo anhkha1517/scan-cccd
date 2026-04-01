@@ -128,7 +128,21 @@ async function start(){
       return;
     }
 
-    const selectedDeviceId = videoDevices[videoDevices.length - 1].deviceId;
+    let selectedDeviceId = null;
+
+// tìm camera sau theo tên
+for (let device of videoDevices) {
+  if (device.label.toLowerCase().includes("back") ||
+      device.label.toLowerCase().includes("rear")) {
+    selectedDeviceId = device.deviceId;
+    break;
+  }
+}
+
+// nếu không tìm thấy thì fallback camera cuối
+if (!selectedDeviceId) {
+  selectedDeviceId = videoDevices[videoDevices.length - 1].deviceId;
+}
 
     // 🔥 MỞ CAMERA
     const stream = await navigator.mediaDevices.getUserMedia({
