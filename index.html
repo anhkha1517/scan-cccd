@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+
+<body style="margin:0; font-family:sans-serif; text-align:center; background:#000; color:#fff;">
+
+<h2>📱 QUÉT CCCD</h2>
+
+<div id="reader" style="width:100%; max-width:400px; margin:auto;"></div>
+
+<div id="result" style="margin-top:20px;"></div>
+
+<script>
+let lastScan = "";
+
+function beep(ok=true){
+  let ctx = new (window.AudioContext || window.webkitAudioContext)();
+  let osc = ctx.createOscillator();
+  osc.frequency.value = ok ? 800 : 300;
+  osc.connect(ctx.destination);
+  osc.start();
+  setTimeout(()=>osc.stop(), 150);
+}
+
+function onScanSuccess(decodedText){
+
+  if (!decodedText || decodedText === lastScan) return;
+  lastScan = decodedText;
+
+  let data = decodedText.split("|");
+
+  if (data.length < 2) {
+    document.getElementById("result").innerHTML = "QR lỗi";
+    beep(false);
+    return;
+  }
+
+  let cccd = data[0];
+  let ten = data[2] || "Không rõ";
+
+  fetch("DÁN_LINK_WEB_APP_CỦA_BẠN", {
+    method: "POST",
+    body: JSON.stringify({ cccd: cccd, ten: ten })
+  })
+  .then(res => res.json())
+  .then(res => {
+
+    let color = res.trangthai === "MỚI" ? "lime" : "red";
+
+    document.getElementById("result").innerHTML =
+      "<h1 style='color:"+color+"'>"+res.trangthai+"</h1>" +
+      "<h2>ID: "+res.id+"</h2>" +
+      "<p>"+res.ten+"</p>";
+
+    beep(res.trangthai === "MỚI");
+
+  });
+}
+
+let scanner = new Html5QrcodeScanner(
+  "reader",
+  { fps: 10, qrbox: 250 },
+  false
+);
+
+scanner.render(onScanSuccess);
+</script>
+
+</body>
+</html>
