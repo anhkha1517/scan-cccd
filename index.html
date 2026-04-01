@@ -2,86 +2,33 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<!-- ZXING -->
 <script src="https://unpkg.com/@zxing/library@latest"></script>
 
 <style>
-body {
-  margin:0;
-  background:black;
-  color:white;
-  text-align:center;
-  font-family:sans-serif;
-}
-
-#video {
-  width:100%;
-  max-width:400px;
-}
-
-#result {
-  margin-top:15px;
-}
-
-.box {
-  border: 3px solid lime;
-  width: 250px;
-  height: 250px;
-  position: absolute;
-  top: 120px;
-  left: 50%;
-  transform: translateX(-50%);
-}
+body { margin:0; background:black; color:white; text-align:center; }
+#video { width:100%; max-width:400px; }
 </style>
 </head>
 
 <body>
 
-<h2>📱 QUÉT CCCD PRO (Test)</h2>
-
+<h2>📱 QUÉT CCCD</h2>
 <video id="video"></video>
-<div class="box"></div>
-
 <div id="result"></div>
 
 <script>
 
-// ===== CONFIG =====
 const API_URL = "https://script.google.com/macros/s/AKfycbwBcbZ620CloYSkeX2peRu51R2mbonc4CT8m657gKRreAt9-l7QwsLgSB8OAJoqzyqIow/exec";
 
-// ===== BIẾN =====
 let lastScan = "";
 
-// ===== ÂM THANH =====
-function beep(ok=true){
-  let ctx = new (window.AudioContext || window.webkitAudioContext)();
-  let osc = ctx.createOscillator();
-  osc.frequency.value = ok ? 900 : 300;
-  osc.connect(ctx.destination);
-  osc.start();
-  setTimeout(()=>osc.stop(), 120);
-}
-
-// ===== RUNG =====
-function vibrate(){
-  if (navigator.vibrate) navigator.vibrate(100);
-}
-
-// ===== XỬ LÝ SCAN =====
 function handleResult(text){
-
   if (!text || text === lastScan) return;
   lastScan = text;
 
-  console.log("SCAN:", text);
-
   let data = text.split("|");
-
   if (data.length < 2){
-    document.getElementById("result").innerHTML =
-      "<h2 style='color:red'>QR lỗi</h2>";
-    beep(false);
+    document.getElementById("result").innerHTML = "QR lỗi";
     return;
   }
 
@@ -94,96 +41,55 @@ function handleResult(text){
   })
   .then(res => res.json())
   .then(res => {
-
-    let color = res.trangthai === "MỚI" ? "lime" : "red";
-
     document.getElementById("result").innerHTML =
-      "<h1 style='color:"+color+"'>"+res.trangthai+"</h1>" +
-      "<h1>ID: "+res.id+"</h1>" +
-      "<h3>"+res.ten+"</h3>";
-
-    beep(res.trangthai === "MỚI");
-    vibrate();
-
-  })
-  .catch(err => {
-    document.getElementById("result").innerHTML =
-      "<h2 style='color:red'>Lỗi API</h2>";
+      res.trangthai + " - ID: " + res.id;
   });
-
 }
 
-// ===== START CAMERA (ĐÃ FIX AUTOFOCUS + ZOOM) =====
 async function start(){
 
   const codeReader = new ZXing.BrowserQRCodeReader();
 
   try {
 
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const videoDevices = devices.filter(d => d.kind === "videoinput");
-
-    if (videoDevices.length === 0){
-      document.getElementById("result").innerHTML = "Không có camera";
-      return;
-    }
-
-    let selectedDeviceId = null;
-
-// tìm camera sau theo tên
-for (let device of videoDevices) {
-  if (device.label.toLowerCase().includes("back") ||
-      device.label.toLowerCase().includes("rear")) {
-    selectedDeviceId = device.deviceId;
-    break;
-  }
-}
-
-// nếu không tìm thấy thì fallback camera cuối
-if (!selectedDeviceId) {
-  selectedDeviceId = videoDevices[videoDevices.length - 1].deviceId;
-}
-
-    // 🔥 MỞ CAMERA
+    // 👉 ÉP camera sau luôn
     const stream = await navigator.mediaDevices.getUserMedia({
       video: {
-        deviceId: selectedDeviceId,
+        facingMode: { ideal: "environment" },
         width: { ideal: 1280 },
-        height: { ideal: 720 },
-        focusMode: "continuous"
+        height: { ideal: 720 }
       }
     });
 
     const video = document.getElementById("video");
     video.srcObject = stream;
-    video.setAttribute("playsinline", true);
     video.play();
 
-    // 🔥 ZOOM MAX
+    // 👉 FIX ZOOM (KHÔNG MAX)
     const track = stream.getVideoTracks()[0];
     const capabilities = track.getCapabilities();
 
     if (capabilities.zoom) {
+      const zoomLevel = capabilities.zoom.min + (capabilities.zoom.max - capabilities.zoom.min) * 0.4;
+
       await track.applyConstraints({
-        advanced: [{ zoom: capabilities.zoom.max }]
+        advanced: [{ zoom: zoomLevel }]
       });
     }
 
-    // 🔥 SCAN
+    // 👉 scan
     codeReader.decodeFromVideoElement(video, (result, err) => {
       if (result) {
+        console.log("SCAN:", result.text);
         handleResult(result.text);
       }
     });
 
   } catch (err) {
-    document.getElementById("result").innerHTML =
-      "Lỗi camera: " + err;
+    document.getElementById("result").innerHTML = "Lỗi: " + err;
   }
-
 }
 
-// chạy
 start();
 
 </script>
