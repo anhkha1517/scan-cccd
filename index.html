@@ -2,33 +2,73 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://unpkg.com/@zxing/library@latest"></script>
 
 <style>
-body { margin:0; background:black; color:white; text-align:center; }
-#video { width:100%; max-width:400px; }
+body {
+  margin:0;
+  background:#111;
+  color:white;
+  text-align:center;
+  font-family:sans-serif;
+}
+
+input {
+  width:90%;
+  padding:15px;
+  font-size:18px;
+  margin-top:20px;
+  border-radius:10px;
+  border:none;
+}
+
+#result {
+  margin-top:20px;
+  font-size:22px;
+}
 </style>
 </head>
 
 <body>
 
-<h2>📱 QUÉT CCCD</h2>
-<video id="video"></video>
+<h2>🚀 CHECK-IN NHÂN VIÊN</h2>
+
+<input id="qrInput" placeholder="👉 DÁN QR CCCD VÀO ĐÂY" autofocus>
+
 <div id="result"></div>
 
 <script>
 
 const API_URL = "https://script.google.com/macros/s/AKfycbwBcbZ620CloYSkeX2peRu51R2mbonc4CT8m657gKRreAt9-l7QwsLgSB8OAJoqzyqIow/exec";
 
-let lastScan = "";
+let lastValue = "";
 
-function handleResult(text){
-  if (!text || text === lastScan) return;
-  lastScan = text;
+// âm thanh
+function beep(ok=true){
+  let ctx = new (window.AudioContext || window.webkitAudioContext)();
+  let osc = ctx.createOscillator();
+  osc.frequency.value = ok ? 800 : 300;
+  osc.connect(ctx.destination);
+  osc.start();
+  setTimeout(()=>osc.stop(), 120);
+}
+
+// rung
+function vibrate(){
+  if (navigator.vibrate) navigator.vibrate(100);
+}
+
+// xử lý dữ liệu
+function processQR(text){
+
+  if (!text || text === lastValue) return;
+  lastValue = text;
 
   let data = text.split("|");
+
   if (data.length < 2){
-    document.getElementById("result").innerHTML = "QR lỗi";
+    document.getElementById("result").innerHTML =
+      "<span style='color:red'>❌ QR lỗi</span>";
+    beep(false);
     return;
   }
 
@@ -41,56 +81,46 @@ function handleResult(text){
   })
   .then(res => res.json())
   .then(res => {
+
+    let color = res.trangthai === "MỚI" ? "lime" : "orange";
+
     document.getElementById("result").innerHTML =
-      res.trangthai + " - ID: " + res.id;
+      "<div style='color:"+color+"'>" +
+      res.trangthai + "<br>" +
+      "ID: " + res.id + "<br>" +
+      res.ten +
+      "</div>";
+
+    beep(res.trangthai === "MỚI");
+    vibrate();
+
+    // 🔥 clear để nhập tiếp
+    document.getElementById("qrInput").value = "";
+    document.getElementById("qrInput").focus();
+
   });
+
 }
 
-async function start(){
+// 🔥 AUTO NHẬN KHI DÁN
+document.getElementById("qrInput").addEventListener("input", function(){
+  let val = this.value.trim();
 
-  const codeReader = new ZXing.BrowserQRCodeReader();
-
-  try {
-
-    // 👉 ÉP camera sau luôn
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: "environment" },
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
-      }
-    });
-
-    const video = document.getElementById("video");
-    video.srcObject = stream;
-    video.play();
-
-    // 👉 FIX ZOOM (KHÔNG MAX)
-    const track = stream.getVideoTracks()[0];
-    const capabilities = track.getCapabilities();
-
-    if (capabilities.zoom) {
-      const zoomLevel = capabilities.zoom.min + (capabilities.zoom.max - capabilities.zoom.min) * 0.4;
-
-      await track.applyConstraints({
-        advanced: [{ zoom: zoomLevel }]
-      });
-    }
-
-    // 👉 scan
-    codeReader.decodeFromVideoElement(video, (result, err) => {
-      if (result) {
-        console.log("SCAN:", result.text);
-        handleResult(result.text);
-      }
-    });
-
-  } catch (err) {
-    document.getElementById("result").innerHTML = "Lỗi: " + err;
+  // nếu dài đủ thì xử lý luôn
+  if (val.length > 20){
+    processQR(val);
   }
-}
+});
 
-start();
+// 🔥 AUTO PASTE (xịn)
+document.addEventListener("click", async () => {
+  try {
+    let text = await navigator.clipboard.readText();
+    if (text && text.length > 20){
+      processQR(text);
+    }
+  } catch(e){}
+});
 
 </script>
 
