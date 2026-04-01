@@ -100,19 +100,54 @@ async function start(){
 
   try {
 
-    const videoInputDevices = await codeReader.listVideoInputDevices();
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const videoDevices = devices.filter(d => d.kind === "videoinput");
 
-    if (videoInputDevices.length === 0){
+    if (videoDevices.length === 0){
       document.getElementById("result").innerHTML = "Không có camera";
       return;
     }
-const track = stream.getVideoTracks()[0];
-const capabilities = track.getCapabilities();
 
-if (capabilities.zoom) {
-  track.applyConstraints({
-    advanced: [{ zoom: capabilities.zoom.max }]
-  });
+    const selectedDeviceId = videoDevices[videoDevices.length - 1].deviceId;
+
+    // 🔥 MỞ CAMERA (QUAN TRỌNG)
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        deviceId: selectedDeviceId,
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        focusMode: "continuous"
+      }
+    });
+
+    const video = document.getElementById("video");
+    video.srcObject = stream;
+    video.setAttribute("playsinline", true);
+    video.play();
+
+    // 🔥 ZOOM (FIX CHO CCCD)
+    const track = stream.getVideoTracks()[0];
+    const capabilities = track.getCapabilities();
+
+    if (capabilities.zoom) {
+      await track.applyConstraints({
+        advanced: [{ zoom: capabilities.zoom.max }]
+      });
+    }
+
+    // 🔥 SCAN
+    codeReader.decodeFromVideoElement(video, (result, err) => {
+      if (result) {
+        console.log("SCAN:", result.text);
+        handleResult(result.text);
+      }
+    });
+
+  } catch (err) {
+    document.getElementById("result").innerHTML =
+      "Lỗi camera: " + err;
+  }
+
 }
     // camera sau
     const selectedDeviceId = videoInputDevices[videoInputDevices.length - 1].deviceId;
