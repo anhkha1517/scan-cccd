@@ -16,7 +16,7 @@
 <script>
 
 // ===== CONFIG =====
-const API_URL = https://script.google.com/macros/s/AKfycbwBcbZ620CloYSkeX2peRu51R2mbonc4CT8m657gKRreAt9-l7QwsLgSB8OAJoqzyqIow/exec;
+const API_URL = "https://script.google.com/macros/s/AKfycbwBcbZ620CloYSkeX2peRu51R2mbonc4CT8m657gKRreAt9-l7QwsLgSB8OAJoqzyqIow/exec";
 
 // ===== BIẾN =====
 let lastScan = "";
@@ -49,62 +49,6 @@ function onScanSuccess(decodedText){
   let cccd = data[0];
   let ten = data[2] || "Không rõ";
 
-  // CALL API
-  fetch(API_URL, {
-    method: "POST",
-    body: JSON.stringify({ cccd: cccd, ten: ten })
-  })
-  .then(res => res.json())
-  .then(res => {
-
-    let color = res.trangthai === "MỚI" ? "lime" : "red";
-
-    document.getElementById("result").innerHTML =
-      "<h1 style='color:"+color+"'>"+res.trangthai+"</h1>" +
-      "<h1>ID: "+res.id+"</h1>" +
-      "<h3>"+res.ten+"</h3>";
-
-    beep(res.trangthai === "MỚI");
-
-  })
-  .catch(err => {
-    document.getElementById("result").innerHTML =
-      "<h2 style='color:red'>Lỗi kết nối API</h2>";
-  });
-
-}
-
-// ===== START CAMERA =====
-<script>
-
-const API_URL = "DÁN_LINK_WEB_APP_CỦA_BẠN";
-let lastScan = "";
-
-function beep(ok=true){
-  let ctx = new (window.AudioContext || window.webkitAudioContext)();
-  let osc = ctx.createOscillator();
-  osc.frequency.value = ok ? 800 : 300;
-  osc.connect(ctx.destination);
-  osc.start();
-  setTimeout(()=>osc.stop(), 150);
-}
-
-function onScanSuccess(decodedText){
-
-  if (!decodedText || decodedText === lastScan) return;
-  lastScan = decodedText;
-
-  let data = decodedText.split("|");
-
-  if (data.length < 2) {
-    document.getElementById("result").innerHTML = "QR lỗi";
-    beep(false);
-    return;
-  }
-
-  let cccd = data[0];
-  let ten = data[2] || "Không rõ";
-
   fetch(API_URL, {
     method: "POST",
     body: JSON.stringify({ cccd, ten })
@@ -121,11 +65,15 @@ function onScanSuccess(decodedText){
 
     beep(res.trangthai === "MỚI");
 
+  })
+  .catch(err => {
+    document.getElementById("result").innerHTML =
+      "<h2 style='color:red'>Lỗi API</h2>";
   });
 
 }
 
-// 🔥 KHỞI ĐỘNG CAMERA CHUẨN MOBILE
+// ===== START CAMERA =====
 function startCamera(){
 
   Html5Qrcode.getCameras()
@@ -136,7 +84,7 @@ function startCamera(){
       return;
     }
 
-    // 👉 chọn camera sau (quan trọng)
+    // 👉 camera sau
     let cameraId = devices[devices.length - 1].id;
 
     const html5QrCode = new Html5Qrcode("reader");
@@ -157,8 +105,6 @@ function startCamera(){
 
 // chạy sau khi load
 window.onload = startCamera;
-
-</script>
 
 </script>
 
