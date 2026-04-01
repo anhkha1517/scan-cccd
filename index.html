@@ -7,9 +7,23 @@
 <script src="https://unpkg.com/@zxing/library@latest"></script>
 
 <style>
-body { margin:0; background:black; color:white; text-align:center; font-family:sans-serif; }
-#video { width:100%; max-width:400px; }
-#result { margin-top:15px; }
+body {
+  margin:0;
+  background:black;
+  color:white;
+  text-align:center;
+  font-family:sans-serif;
+}
+
+#video {
+  width:100%;
+  max-width:400px;
+}
+
+#result {
+  margin-top:15px;
+}
+
 .box {
   border: 3px solid lime;
   width: 250px;
@@ -24,7 +38,7 @@ body { margin:0; background:black; color:white; text-align:center; font-family:s
 
 <body>
 
-<h2>📱 QUÉT CCCD (PRO)</h2>
+<h2>📱 QUÉT CCCD PRO (Test)</h2>
 
 <video id="video"></video>
 <div class="box"></div>
@@ -33,11 +47,13 @@ body { margin:0; background:black; color:white; text-align:center; font-family:s
 
 <script>
 
+// ===== CONFIG =====
 const API_URL = "https://script.google.com/macros/s/AKfycbwBcbZ620CloYSkeX2peRu51R2mbonc4CT8m657gKRreAt9-l7QwsLgSB8OAJoqzyqIow/exec";
 
+// ===== BIẾN =====
 let lastScan = "";
 
-// âm thanh
+// ===== ÂM THANH =====
 function beep(ok=true){
   let ctx = new (window.AudioContext || window.webkitAudioContext)();
   let osc = ctx.createOscillator();
@@ -47,12 +63,12 @@ function beep(ok=true){
   setTimeout(()=>osc.stop(), 120);
 }
 
-// rung
+// ===== RUNG =====
 function vibrate(){
   if (navigator.vibrate) navigator.vibrate(100);
 }
 
-// xử lý scan
+// ===== XỬ LÝ SCAN =====
 function handleResult(text){
 
   if (!text || text === lastScan) return;
@@ -89,11 +105,15 @@ function handleResult(text){
     beep(res.trangthai === "MỚI");
     vibrate();
 
+  })
+  .catch(err => {
+    document.getElementById("result").innerHTML =
+      "<h2 style='color:red'>Lỗi API</h2>";
   });
 
 }
 
-// start camera
+// ===== START CAMERA (ĐÃ FIX AUTOFOCUS + ZOOM) =====
 async function start(){
 
   const codeReader = new ZXing.BrowserQRCodeReader();
@@ -110,7 +130,7 @@ async function start(){
 
     const selectedDeviceId = videoDevices[videoDevices.length - 1].deviceId;
 
-    // 🔥 MỞ CAMERA (QUAN TRỌNG)
+    // 🔥 MỞ CAMERA
     const stream = await navigator.mediaDevices.getUserMedia({
       video: {
         deviceId: selectedDeviceId,
@@ -125,7 +145,7 @@ async function start(){
     video.setAttribute("playsinline", true);
     video.play();
 
-    // 🔥 ZOOM (FIX CHO CCCD)
+    // 🔥 ZOOM MAX
     const track = stream.getVideoTracks()[0];
     const capabilities = track.getCapabilities();
 
@@ -138,7 +158,6 @@ async function start(){
     // 🔥 SCAN
     codeReader.decodeFromVideoElement(video, (result, err) => {
       if (result) {
-        console.log("SCAN:", result.text);
         handleResult(result.text);
       }
     });
@@ -149,26 +168,8 @@ async function start(){
   }
 
 }
-    // camera sau
-    const selectedDeviceId = videoInputDevices[videoInputDevices.length - 1].deviceId;
 
-    codeReader.decodeFromVideoDevice(
-      selectedDeviceId,
-      'video',
-      (result, err) => {
-        if (result) {
-          handleResult(result.text);
-        }
-      }
-    );
-
-  } catch (err) {
-    document.getElementById("result").innerHTML =
-      "Lỗi camera: " + err;
-  }
-
-}
-
+// chạy
 start();
 
 </script>
