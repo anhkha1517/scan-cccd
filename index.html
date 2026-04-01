@@ -1,47 +1,70 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://unpkg.com/html5-qrcode"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- ZXING -->
+<script src="https://unpkg.com/@zxing/library@latest"></script>
+
+<style>
+body { margin:0; background:black; color:white; text-align:center; font-family:sans-serif; }
+#video { width:100%; max-width:400px; }
+#result { margin-top:15px; }
+.box {
+  border: 3px solid lime;
+  width: 250px;
+  height: 250px;
+  position: absolute;
+  top: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+</style>
 </head>
 
-<body style="margin:0; background:black; color:white; text-align:center; font-family:sans-serif;">
+<body>
 
-<h2>📱 QUÉT CCCD</h2>
+<h2>📱 QUÉT CCCD (PRO)</h2>
 
-<div id="reader" style="width:100%; max-width:400px; margin:auto;"></div>
+<video id="video"></video>
+<div class="box"></div>
 
-<div id="result" style="margin-top:20px;"></div>
+<div id="result"></div>
 
 <script>
 
-// ===== CONFIG =====
 const API_URL = "https://script.google.com/macros/s/AKfycbwBcbZ620CloYSkeX2peRu51R2mbonc4CT8m657gKRreAt9-l7QwsLgSB8OAJoqzyqIow/exec";
 
-// ===== BIẾN =====
 let lastScan = "";
 
-// ===== ÂM THANH =====
+// âm thanh
 function beep(ok=true){
   let ctx = new (window.AudioContext || window.webkitAudioContext)();
   let osc = ctx.createOscillator();
-  osc.frequency.value = ok ? 800 : 300;
+  osc.frequency.value = ok ? 900 : 300;
   osc.connect(ctx.destination);
   osc.start();
-  setTimeout(()=>osc.stop(), 150);
+  setTimeout(()=>osc.stop(), 120);
 }
 
-// ===== XỬ LÝ SCAN =====
-function onScanSuccess(decodedText){
-console.log(decodedText);
-  if (!decodedText || decodedText === lastScan) return;
-  lastScan = decodedText;
+// rung
+function vibrate(){
+  if (navigator.vibrate) navigator.vibrate(100);
+}
 
-  let data = decodedText.split("|");
+// xử lý scan
+function handleResult(text){
 
-  if (data.length < 2) {
+  if (!text || text === lastScan) return;
+  lastScan = text;
+
+  console.log("SCAN:", text);
+
+  let data = text.split("|");
+
+  if (data.length < 2){
     document.getElementById("result").innerHTML =
-      "<h2 style='color:red'>❌ QR lỗi</h2>";
+      "<h2 style='color:red'>QR lỗi</h2>";
     beep(false);
     return;
   }
@@ -64,59 +87,47 @@ console.log(decodedText);
       "<h3>"+res.ten+"</h3>";
 
     beep(res.trangthai === "MỚI");
+    vibrate();
 
-  })
-  .catch(err => {
-    document.getElementById("result").innerHTML =
-      "<h2 style='color:red'>Lỗi API</h2>";
   });
 
 }
 
-// ===== START CAMERA =====
-function startCamera(){
+// start camera
+async function start(){
 
-  Html5Qrcode.getCameras()
-  .then(devices => {
+  const codeReader = new ZXing.BrowserQRCodeReader();
 
-    if (!devices || devices.length === 0) {
+  try {
+
+    const videoInputDevices = await codeReader.listVideoInputDevices();
+
+    if (videoInputDevices.length === 0){
       document.getElementById("result").innerHTML = "Không có camera";
       return;
     }
 
-    // 👉 camera sau
-    let cameraId = devices[devices.length - 1].id;
+    // camera sau
+    const selectedDeviceId = videoInputDevices[videoInputDevices.length - 1].deviceId;
 
-    const html5QrCode = new Html5Qrcode("reader");
+    codeReader.decodeFromVideoDevice(
+      selectedDeviceId,
+      'video',
+      (result, err) => {
+        if (result) {
+          handleResult(result.text);
+        }
+      }
+    );
 
-    html5QrCode.start(
-  cameraId,
-  {
-    fps: 15,
-    qrbox: { width: 300, height: 300 },
-    aspectRatio: 1.0,
-    disableFlip: false
-  },
-  (decodedText) => {
-    console.log("SCAN:", decodedText); // debug
-    onScanSuccess(decodedText);
-  },
-  (errorMessage) => {
-    // log lỗi nhẹ (không spam)
-    // console.log(errorMessage);
-  }
-);
-
-  })
-  .catch(err => {
+  } catch (err) {
     document.getElementById("result").innerHTML =
       "Lỗi camera: " + err;
-  });
+  }
 
 }
 
-// chạy sau khi load
-window.onload = startCamera;
+start();
 
 </script>
 
