@@ -75,13 +75,90 @@ function onScanSuccess(decodedText){
 }
 
 // ===== START CAMERA =====
-let scanner = new Html5QrcodeScanner(
-  "reader",
-  { fps: 10, qrbox: 250 },
-  false
-);
+<script>
 
-scanner.render(onScanSuccess);
+const API_URL = "DÁN_LINK_WEB_APP_CỦA_BẠN";
+let lastScan = "";
+
+function beep(ok=true){
+  let ctx = new (window.AudioContext || window.webkitAudioContext)();
+  let osc = ctx.createOscillator();
+  osc.frequency.value = ok ? 800 : 300;
+  osc.connect(ctx.destination);
+  osc.start();
+  setTimeout(()=>osc.stop(), 150);
+}
+
+function onScanSuccess(decodedText){
+
+  if (!decodedText || decodedText === lastScan) return;
+  lastScan = decodedText;
+
+  let data = decodedText.split("|");
+
+  if (data.length < 2) {
+    document.getElementById("result").innerHTML = "QR lỗi";
+    beep(false);
+    return;
+  }
+
+  let cccd = data[0];
+  let ten = data[2] || "Không rõ";
+
+  fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({ cccd, ten })
+  })
+  .then(res => res.json())
+  .then(res => {
+
+    let color = res.trangthai === "MỚI" ? "lime" : "red";
+
+    document.getElementById("result").innerHTML =
+      "<h1 style='color:"+color+"'>"+res.trangthai+"</h1>" +
+      "<h1>ID: "+res.id+"</h1>" +
+      "<h3>"+res.ten+"</h3>";
+
+    beep(res.trangthai === "MỚI");
+
+  });
+
+}
+
+// 🔥 KHỞI ĐỘNG CAMERA CHUẨN MOBILE
+function startCamera(){
+
+  Html5Qrcode.getCameras()
+  .then(devices => {
+
+    if (!devices || devices.length === 0) {
+      document.getElementById("result").innerHTML = "Không có camera";
+      return;
+    }
+
+    // 👉 chọn camera sau (quan trọng)
+    let cameraId = devices[devices.length - 1].id;
+
+    const html5QrCode = new Html5Qrcode("reader");
+
+    html5QrCode.start(
+      cameraId,
+      { fps: 10, qrbox: 250 },
+      onScanSuccess
+    );
+
+  })
+  .catch(err => {
+    document.getElementById("result").innerHTML =
+      "Lỗi camera: " + err;
+  });
+
+}
+
+// chạy sau khi load
+window.onload = startCamera;
+
+</script>
 
 </script>
 
