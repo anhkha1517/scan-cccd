@@ -33,7 +33,7 @@ function beep(ok=true){
 
 // ===== XỬ LÝ SCAN =====
 function onScanSuccess(decodedText){
-
+console.log(decodedText);
   if (!decodedText || decodedText === lastScan) return;
   lastScan = decodedText;
 
