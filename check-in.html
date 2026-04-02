@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Check-in</title>
+<style>
+body { font-family: Arial; text-align: center; padding: 50px; }
+input, button { padding: 10px; margin: 10px; width: 250px; }
+#result { font-size: 24px; margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<h2>Check-in nhân viên</h2>
+
+<input id="id" placeholder="Nhập mã nhân viên"><br>
+<button onclick="checkin()">Check-in</button>
+
+<div id="result"></div>
+
+<script>
+function checkin(){
+  var id = document.getElementById("id").value;
+
+  fetch("LINK_API?id=" + id)
+  .then(res => res.text())
+  .then(data => {
+    if(data.startsWith("OK")){
+      var name = data.split("|")[1];
+      document.getElementById("result").innerHTML =
+        "✅ Xin chào " + name;
+    } else {
+      document.getElementById("result").innerHTML =
+        "❌ Không tìm thấy";
+    }
+  });
+}
+</script>
+
+</body>
+</html>
