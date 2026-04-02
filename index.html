@@ -1,127 +1,49 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+<meta charset="UTF-8">
+<title>Đăng ký nhân viên</title>
 <style>
-body {
-  margin:0;
-  background:#111;
-  color:white;
-  text-align:center;
-  font-family:sans-serif;
-}
-
-input {
-  width:90%;
-  padding:15px;
-  font-size:18px;
-  margin-top:20px;
-  border-radius:10px;
-  border:none;
-}
-
-#result {
-  margin-top:20px;
-  font-size:22px;
-}
+body { font-family: Arial; text-align: center; padding: 40px; }
+input, select, button { padding: 10px; margin: 10px; width: 260px; }
+#result { font-size: 22px; color: green; margin-top: 20px; }
 </style>
 </head>
-
 <body>
 
-<h2>🚀 CHECK-IN NHÂN VIÊN</h2>
+<h2>Đăng ký nhân viên</h2>
 
-<input id="qrInput" placeholder="👉 DÁN QR CCCD VÀO ĐÂY" autofocus>
+<input id="name" placeholder="Họ và tên"><br>
+<input id="cccd" placeholder="CCCD"><br>
+
+<select id="gender">
+  <option value="Nam">Nam</option>
+  <option value="Nữ">Nữ</option>
+</select><br>
+
+<button onclick="submitForm()">Đăng ký</button>
 
 <div id="result"></div>
 
 <script>
+function submitForm(){
+  var name = document.getElementById("name").value;
+  var cccd = document.getElementById("cccd").value;
+  var gender = document.getElementById("gender").value;
 
-const API_URL = "https://script.google.com/macros/s/AKfycbwBcbZ620CloYSkeX2peRu51R2mbonc4CT8m657gKRreAt9-l7QwsLgSB8OAJoqzyqIow/exec";
-
-let lastValue = "";
-
-// âm thanh
-function beep(ok=true){
-  let ctx = new (window.AudioContext || window.webkitAudioContext)();
-  let osc = ctx.createOscillator();
-  osc.frequency.value = ok ? 800 : 300;
-  osc.connect(ctx.destination);
-  osc.start();
-  setTimeout(()=>osc.stop(), 120);
-}
-
-// rung
-function vibrate(){
-  if (navigator.vibrate) navigator.vibrate(100);
-}
-
-// xử lý dữ liệu
-function processQR(text){
-
-  if (!text || text === lastValue) return;
-  lastValue = text;
-
-  let data = text.split("|");
-
-  if (data.length < 2){
-    document.getElementById("result").innerHTML =
-      "<span style='color:red'>❌ QR lỗi</span>";
-    beep(false);
-    return;
-  }
-
-  let cccd = data[0];
-  let ten = data[2] || "Không rõ";
-
-  fetch(API_URL, {
+  fetch("LINK_API", {
     method: "POST",
-    body: JSON.stringify({ cccd, ten })
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: "name=" + name + "&cccd=" + cccd + "&gender=" + gender
   })
-  .then(res => res.json())
-  .then(res => {
-
-    let color = res.trangthai === "MỚI" ? "lime" : "orange";
-
+  .then(res => res.text())
+  .then(id => {
     document.getElementById("result").innerHTML =
-      "<div style='color:"+color+"'>" +
-      res.trangthai + "<br>" +
-      "ID: " + res.id + "<br>" +
-      res.ten +
-      "</div>";
-
-    beep(res.trangthai === "MỚI");
-    vibrate();
-
-    // 🔥 clear để nhập tiếp
-    document.getElementById("qrInput").value = "";
-    document.getElementById("qrInput").focus();
-
+      "✅ Mã nhân viên: <b>" + id + "</b>";
   });
-
 }
-
-// 🔥 AUTO NHẬN KHI DÁN
-document.getElementById("qrInput").addEventListener("input", function(){
-  let val = this.value.trim();
-
-  // nếu dài đủ thì xử lý luôn
-  if (val.length > 20){
-    processQR(val);
-  }
-});
-
-// 🔥 AUTO PASTE (xịn)
-document.addEventListener("click", async () => {
-  try {
-    let text = await navigator.clipboard.readText();
-    if (text && text.length > 20){
-      processQR(text);
-    }
-  } catch(e){}
-});
-
 </script>
 
 </body>
